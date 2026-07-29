@@ -24,11 +24,6 @@ type HttpError = Error & {
 
 const app = express();
 
-app.use("/api/v1/districts", districtRouter);
-
-
-
-
 app.use((request, response, next) => {
   request.requestId = randomUUID();
   response.setHeader("X-Request-Id", request.requestId);
@@ -36,6 +31,8 @@ app.use((request, response, next) => {
 });
 
 app.use(express.json());
+
+app.use("/api/v1/districts", districtRouter);
 
 app.get("/health", (request, response) => {
   response.json({
