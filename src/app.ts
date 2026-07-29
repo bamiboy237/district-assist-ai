@@ -4,6 +4,14 @@ import { randomUUID } from "node:crypto";
 import type { CreateStudentInput, Student } from "./student.types.js";
 import { add, getAll } from "./studentStore.js";
 
+import { createDistrictRoutes } from "./modules/districts/district.routes.js";
+import { InMemoryDistrictRepository } from "./modules/districts/district.repository.js";
+import { DistrictService } from "./modules/districts/district.service.js";
+
+const districtRepo = new InMemoryDistrictRepository();
+const districtService = new DistrictService(districtRepo);
+const districtRouter = createDistrictRoutes(districtService);
+
 type StudentQuery = {
   gradeLevel?: string;
   search?: string;
@@ -15,6 +23,11 @@ type HttpError = Error & {
 };
 
 const app = express();
+
+app.use("/api/v1/districts", districtRouter);
+
+
+
 
 app.use((request, response, next) => {
   request.requestId = randomUUID();
