@@ -1,0 +1,587 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "DistrictAssist AI",
+    "version": "1.0.0",
+    "description": "API for managing student data, imports, and support plans."
+  },
+  "servers": [
+    {
+      "url": "http://localhost:3000"
+    }
+  ],
+  "components": {
+    "schemas": {
+      "District": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "stateCode": {
+            "type": "string",
+            "minLength": 2,
+            "maxLength": 2
+          },
+          "clerkOrganizationId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 255
+          }
+        },
+        "required": ["name", "stateCode", "clerkOrganizationId"]
+      },
+      "Student": {
+        "type": "object",
+        "properties": {
+          "externalId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100
+          },
+          "firstName": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100
+          },
+          "lastName": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100
+          },
+          "gradeLevel": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 12
+          },
+          "schoolName": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "programStatus": {
+            "type": "string",
+            "enum": ["active", "monitoring", "inactive"]
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "districtId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "externalId",
+          "firstName",
+          "lastName",
+          "gradeLevel",
+          "schoolName",
+          "programStatus",
+          "id",
+          "districtId",
+          "createdAt",
+          "updatedAt"
+        ]
+      },
+      "CreateStudent": {
+        "type": "object",
+        "properties": {
+          "externalId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100
+          },
+          "firstName": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100
+          },
+          "lastName": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100
+          },
+          "gradeLevel": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 12
+          },
+          "schoolName": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "programStatus": {
+            "type": "string",
+            "enum": ["active", "monitoring", "inactive"]
+          }
+        },
+        "required": [
+          "externalId",
+          "firstName",
+          "lastName",
+          "gradeLevel",
+          "schoolName",
+          "programStatus"
+        ]
+      },
+      "ImportJob": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "districtId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "filename": {
+            "type": "string"
+          },
+          "fileChecksum": {
+            "type": "string",
+            "nullable": true
+          },
+          "status": {
+            "type": "string",
+            "enum": ["received", "processing", "completed", "failed"]
+          },
+          "totalRows": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "acceptedRows": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "rejectedRows": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "failureCode": {
+            "type": "string",
+            "nullable": true
+          },
+          "failureMessage": {
+            "type": "string",
+            "nullable": true
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "districtId",
+          "filename",
+          "fileChecksum",
+          "status",
+          "totalRows",
+          "acceptedRows",
+          "rejectedRows",
+          "failureCode",
+          "failureMessage",
+          "createdAt",
+          "updatedAt"
+        ]
+      },
+      "ImportError": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "importJobId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "rowNumber": {
+            "type": "integer",
+            "minimum": 0,
+            "exclusiveMinimum": true
+          },
+          "field": {
+            "type": "string",
+            "nullable": true
+          },
+          "code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          }
+        },
+        "required": ["id", "importJobId", "rowNumber", "field", "code", "message"]
+      },
+      "SupportPlan": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "districtId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "studentId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "goal": {
+            "type": "string"
+          },
+          "startDate": {
+            "type": "string",
+            "format": "date"
+          },
+          "reviewDate": {
+            "type": "string",
+            "format": "date"
+          },
+          "status": {
+            "type": "string",
+            "enum": ["draft", "active", "completed", "cancelled"]
+          },
+          "version": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "districtId",
+          "studentId",
+          "goal",
+          "startDate",
+          "reviewDate",
+          "status",
+          "version",
+          "createdAt",
+          "updatedAt"
+        ]
+      },
+      "CreateSupportPlan": {
+        "type": "object",
+        "properties": {
+          "goal": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 2000
+          },
+          "startDate": {
+            "type": "string",
+            "format": "date"
+          },
+          "reviewDate": {
+            "type": "string",
+            "format": "date"
+          },
+          "status": {
+            "type": "string",
+            "enum": ["draft", "active", "completed", "cancelled"],
+            "default": "draft"
+          }
+        },
+        "required": ["goal", "startDate", "reviewDate"]
+      }
+    },
+    "parameters": {}
+  },
+  "paths": {
+    "/health": {
+      "get": {
+        "summary": "Health check",
+        "tags": ["System"],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/ready": {
+      "get": {
+        "summary": "Readiness check",
+        "tags": ["System"],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "503": {
+            "description": "Degraded"
+          }
+        }
+      }
+    },
+    "/api/v1/districts": {
+      "post": {
+        "summary": "Create a district",
+        "tags": ["Districts"],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 200
+                  },
+                  "stateCode": {
+                    "type": "string",
+                    "minLength": 2,
+                    "maxLength": 2
+                  },
+                  "clerkOrganizationId": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 255
+                  }
+                },
+                "required": ["name", "stateCode"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created"
+          }
+        }
+      }
+    },
+    "/api/v1/districts/current": {
+      "get": {
+        "summary": "Resolve current district",
+        "tags": ["Districts"],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/districts/{districtId}/students": {
+      "post": {
+        "summary": "Create a student",
+        "tags": ["Students"],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "districtId",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "externalId": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 100
+                  },
+                  "firstName": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 100
+                  },
+                  "lastName": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 100
+                  },
+                  "gradeLevel": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 12
+                  },
+                  "schoolName": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 200
+                  },
+                  "programStatus": {
+                    "type": "string",
+                    "enum": ["active", "monitoring", "inactive"]
+                  }
+                },
+                "required": [
+                  "externalId",
+                  "firstName",
+                  "lastName",
+                  "gradeLevel",
+                  "schoolName",
+                  "programStatus"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created"
+          }
+        }
+      },
+      "get": {
+        "summary": "List students",
+        "tags": ["Students"],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/districts/{districtId}/imports/students": {
+      "post": {
+        "summary": "Upload student CSV",
+        "tags": ["Imports"],
+        "responses": {
+          "201": {
+            "description": "Created"
+          }
+        }
+      }
+    },
+    "/api/v1/districts/{districtId}/imports/{importId}": {
+      "get": {
+        "summary": "Get import status",
+        "tags": ["Imports"],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/districts/{districtId}/imports/{importId}/errors": {
+      "get": {
+        "summary": "List import errors",
+        "tags": ["Imports"],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/districts/{districtId}/students/{studentId}/support-plans": {
+      "post": {
+        "summary": "Create a support plan",
+        "tags": ["Support Plans"],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "districtId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "studentId",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "goal": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 2000
+                  },
+                  "startDate": {
+                    "type": "string",
+                    "format": "date"
+                  },
+                  "reviewDate": {
+                    "type": "string",
+                    "format": "date"
+                  },
+                  "status": {
+                    "type": "string",
+                    "enum": ["draft", "active", "completed", "cancelled"],
+                    "default": "draft"
+                  }
+                },
+                "required": ["goal", "startDate", "reviewDate"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created"
+          }
+        }
+      },
+      "get": {
+        "summary": "List support plans",
+        "tags": ["Support Plans"],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/districts/{districtId}/assistant/messages": {
+      "post": {
+        "summary": "AI assistant message",
+        "tags": ["AI"],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    }
+  }
+}

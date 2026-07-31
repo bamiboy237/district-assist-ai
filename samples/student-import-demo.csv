@@ -1,0 +1,6 @@
+external_id,first_name,last_name,grade_level,school_name,program_status
+DEMO-1001,Ada,Rivers,7,North Middle,active
+DEMO-1002,Mateo,Fields,8,North Middle,monitoring
+DEMO-1003,Priya,Stone,6,Central Academy,inactive
+DEMO-1004,Noah,Brooks,13,Central Academy,active
+DEMO-1001,Lina,Park,7,North Middle,active
