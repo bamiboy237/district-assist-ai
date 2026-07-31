@@ -12,7 +12,10 @@ import type { AppContext } from "./app-context";
 import { useDistrict } from "./auth/useDistrict";
 import { environment } from "./env";
 import { AssistantPage } from "./pages/AssistantPage";
+import { DistrictSettingsPage } from "./pages/DistrictSettingsPage";
 import { ImportsPage } from "./pages/ImportsPage";
+import { SpecialistsPage } from "./pages/SpecialistsPage";
+import { StudentDetailPage } from "./pages/StudentDetailPage";
 import { StudentsPage } from "./pages/StudentsPage";
 
 export function App() {
@@ -22,8 +25,11 @@ export function App() {
         <Route element={<PlatformLayout />}>
           <Route index element={<Navigate to="/students" replace />} />
           <Route path="students" element={<StudentsPage />} />
+          <Route path="students/:studentId" element={<StudentDetailPage />} />
           <Route path="imports" element={<ImportsPage />} />
           <Route path="assistant" element={<AssistantPage />} />
+          <Route path="settings" element={<DistrictSettingsPage />} />
+          <Route path="specialists" element={<SpecialistsPage />} />
           <Route path="*" element={<Navigate to="/students" replace />} />
         </Route>
       </Routes>
@@ -64,18 +70,14 @@ function PlatformLayout() {
     return (
       <CenteredState
         eyebrow="DistrictAssist"
-        title="Loading your workspace"
-        description="Confirming your active organization and district access."
+        title="Loading your session"
+        description="Checking your identity and organization membership."
       />
     );
   if (!isSignedIn)
     return (
-      <CenteredState
-        eyebrow="DistrictAssist"
-        title="Sign in to continue"
-        description="Use your district account to access the operations workspace."
-      >
-        <SignInButton mode="redirect">
+      <CenteredState eyebrow="DistrictAssist" title="Sign in to continue">
+        <SignInButton mode="modal">
           <button className="button button-primary" type="button">
             Sign in
           </button>
@@ -148,15 +150,17 @@ function PlatformLayout() {
           <UserButton />
         </div>
       </header>
-      <div className="workspace">
-        <aside className="sidebar" aria-label="Primary navigation">
-          <p className="district-label">Active district</p>
-          <p className="district-name">{currentDistrict.district!.name}</p>
-          <p className="district-meta">{currentDistrict.district!.stateCode}</p>
+      <div className="app-layout">
+        <aside className="sidebar">
+          <p className="district-info">
+            {currentDistrict.district!.name} · {currentDistrict.district!.stateCode}
+          </p>
           <nav>
             <NavItem to="/students" label="Students" />
-            <NavItem to="/imports" label="Import CSV" />
-            <NavItem to="/assistant" label="Import assistant" />
+            <NavItem to="/imports" label="Imports" />
+            <NavItem to="/assistant" label="Assistant" />
+            <NavItem to="/settings" label="Settings" />
+            <NavItem to="/specialists" label="Specialists" />
           </nav>
           <p className="scope-note">
             Records and actions are scoped to your active organization.

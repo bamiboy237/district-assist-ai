@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useOutletContext } from "react-router-dom";
+import { Link, useOutletContext } from "react-router-dom";
 import useSWRInfinite from "swr/infinite";
 import type { Student, StudentPage } from "../api/client";
 import type { AppContext } from "../app-context";
@@ -110,7 +110,9 @@ function StudentResults({ students }: { students: Student[] }) {
             {students.map((student) => (
               <tr key={student.id}>
                 <th scope="row">
-                  {student.firstName} {student.lastName}
+                  <Link to={`/students/${student.id}`}>
+                    {student.firstName} {student.lastName}
+                  </Link>
                 </th>
                 <td className="external-id">{student.externalId}</td>
                 <td>{student.gradeLevel}</td>
@@ -126,18 +128,20 @@ function StudentResults({ students }: { students: Student[] }) {
       <ul className="record-list" aria-label="Student records">
         {students.map((student) => (
           <li key={student.id} className="record-card">
-            <div>
-              <strong>
-                {student.firstName} {student.lastName}
-              </strong>
-              <p>
-                {student.schoolName} · Grade {student.gradeLevel}
-              </p>
-            </div>
-            <div className="record-card-meta">
-              <span className="external-id">{student.externalId}</span>
-              <StatusBadge status={student.programStatus} />
-            </div>
+            <Link to={`/students/${student.id}`} className="record-card-link">
+              <div>
+                <strong>
+                  {student.firstName} {student.lastName}
+                </strong>
+                <p>
+                  {student.schoolName} · Grade {student.gradeLevel}
+                </p>
+              </div>
+              <div className="record-card-meta">
+                <span className="external-id">{student.externalId}</span>
+                <StatusBadge status={student.programStatus} />
+              </div>
+            </Link>
           </li>
         ))}
       </ul>

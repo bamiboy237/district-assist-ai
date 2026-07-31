@@ -65,6 +65,19 @@ export type AssistantReply = {
   citations: Array<{ type: "import"; id: string }>;
 };
 
+export type SupportPlan = {
+  id: string;
+  districtId: string;
+  studentId: string;
+  status: "draft" | "active" | "completed" | "cancelled";
+  goal: string;
+  startDate: string;
+  reviewDate: string;
+  version: number;
+  createdAt: string;
+  updatedAt: string;
+};
+
 type ApiErrorBody = {
   error?: { code?: string; message?: string; requestId?: string };
 };
@@ -192,6 +205,155 @@ export class DistrictAssistApi {
       headers: { "Content-Type": "application/json" },
       signal,
     });
+  }
+
+  getStudent(
+    districtId: string,
+    studentId: string,
+    signal: AbortSignal | null = null,
+  ): Promise<Student> {
+    return this.fetchEnvelope(`api/v1/districts/${districtId}/students/${studentId}`, {
+      signal,
+    });
+  }
+
+  createStudent(
+    districtId: string,
+    input: {
+      externalId: string;
+      firstName: string;
+      lastName: string;
+      gradeLevel: number;
+      schoolName: string;
+      programStatus: Student["programStatus"];
+    },
+    signal: AbortSignal | null = null,
+  ): Promise<Student> {
+    return this.fetchEnvelope(`api/v1/districts/${districtId}/students`, {
+      method: "POST",
+      body: JSON.stringify(input),
+      headers: { "Content-Type": "application/json" },
+      signal,
+    });
+  }
+
+  updateStudent(
+    districtId: string,
+    studentId: string,
+    input: Partial<{
+      externalId: string;
+      firstName: string;
+      lastName: string;
+      gradeLevel: number;
+      schoolName: string;
+      programStatus: Student["programStatus"];
+    }>,
+    signal: AbortSignal | null = null,
+  ): Promise<Student> {
+    return this.fetchEnvelope(`api/v1/districts/${districtId}/students/${studentId}`, {
+      method: "PATCH",
+      body: JSON.stringify(input),
+      headers: { "Content-Type": "application/json" },
+      signal,
+    });
+  }
+
+  getDistrict(
+    districtId: string,
+    signal: AbortSignal | null = null,
+  ): Promise<District> {
+    return this.fetchEnvelope(`api/v1/districts/${districtId}`, { signal });
+  }
+
+  updateDistrict(
+    districtId: string,
+    input: { name?: string; stateCode?: string },
+    signal: AbortSignal | null = null,
+  ): Promise<District> {
+    return this.fetchEnvelope(`api/v1/districts/${districtId}`, {
+      method: "PATCH",
+      body: JSON.stringify(input),
+      headers: { "Content-Type": "application/json" },
+      signal,
+    });
+  }
+
+  listSupportPlans(
+    districtId: string,
+    studentId: string,
+    signal: AbortSignal | null = null,
+  ): Promise<SupportPlan[]> {
+    return this.fetchEnvelope(
+      `api/v1/districts/${districtId}/students/${studentId}/support-plans`,
+      { signal },
+    );
+  }
+
+  createSupportPlan(
+    districtId: string,
+    studentId: string,
+    input: { goal: string; startDate: string; reviewDate: string },
+    signal: AbortSignal | null = null,
+  ): Promise<SupportPlan> {
+    return this.fetchEnvelope(
+      `api/v1/districts/${districtId}/students/${studentId}/support-plans`,
+      {
+        method: "POST",
+        body: JSON.stringify(input),
+        headers: { "Content-Type": "application/json" },
+        signal,
+      },
+    );
+  }
+
+  updateSupportPlan(
+    districtId: string,
+    planId: string,
+    input: {
+      goal?: string;
+      status?: SupportPlan["status"];
+      reviewDate?: string;
+      version: number;
+    },
+    signal: AbortSignal | null = null,
+  ): Promise<SupportPlan> {
+    return this.fetchEnvelope(
+      `api/v1/districts/${districtId}/support-plans/${planId}`,
+      {
+        method: "PATCH",
+        body: JSON.stringify(input),
+        headers: { "Content-Type": "application/json" },
+        signal,
+      },
+    );
+  }
+
+  getSpecialistSchools(
+    districtId: string,
+    clerkUserId: string,
+    signal: AbortSignal | null = null,
+  ): Promise<{ schoolNames: string[] }> {
+    return this.fetchEnvelope(
+      `api/v1/districts/${districtId}/specialists/${clerkUserId}/schools`,
+      { signal },
+    );
+  }
+
+  setSpecialistSchools(
+    districtId: string,
+    clerkUserId: string,
+    schoolNames: string[],
+    signal: AbortSignal | null = null,
+  ): Promise<{ schoolNames: string[] }> {
+    return this.fetchEnvelope(
+      `api/v1/districts/${districtId}/specialists/${clerkUserId}/schools`,
+      {
+        method: "PUT",
+        body: JSON.stringify({ schoolNames }),
+        headers: { "Content-Type": "application/json" },
+        signal,
+      },
+    );
   }
 
   fetcher<T>(url: string): Promise<T> {
