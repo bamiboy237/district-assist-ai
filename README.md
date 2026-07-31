@@ -1,32 +1,99 @@
 # DistrictAssist AI
 
-DistrictAssist is a multi-tenant backend for managing student support programs.
+DistrictAssist is a multi-tenant backend for managing student support programs across school districts.
 
-District staff upload student rosters as CSV files. The API validates every row, imports the valid records, and returns a detailed report explaining why any rejected rows failed.
+District staff can upload student rosters as CSV files. The API validates each row, imports valid records, reports rejected rows, and provides AI-assisted explanations for common import errors.
 
-Each district maps to a single Clerk Organization. Clerk handles authentication, organization membership, invitations, and the active organization. PostgreSQL stores the district's application data.
+## Features
 
-## How requests are authorized
+- Multi-tenant architecture with one Clerk Organization per district
+- CSV imports with row-level validation
+- Partial acceptance of valid records
+- Detailed error reports for rejected rows
+- AI-assisted import explanations
+- School-level access controls for specialists
+- Idempotent imports that prevent duplicate records
+- Audit logs for administrative and support-plan changes
 
-All `/api/v1` requests are authenticated through Clerk.
+## Tech Stack
 
-The API reads the authenticated user with `getAuth(req)` and verifies that the request's active `org_id` matches the district in the route. Changing the district ID in the URL does not grant access to another district's data.
+- **Backend:** Node.js, Express, TypeScript
+- **Frontend:** React
+- **Database:** PostgreSQL
+- **Authentication:** Clerk Organizations
+- **AI workflows:** Mastra
+- **Language model:** OpenAI
+- **Testing:** Vitest
+- **Development:** Docker
 
-| Clerk role | DistrictAssist access |
-|------------|-----------------------|
-| `org:admin` | District coordinator: import and edit students, manage support plans |
-| `org:member` | School specialist: access assigned schools and manage support plans |
-| Platform administrator | Provision districts and manage all districts |
+## How It Works
 
-Platform administrators are application staff rather than district users. After running migrations, grant platform access with:
+Each school district maps to a Clerk Organization.
 
-```bash
-npm run grant:platform-admin -- user_...
+Clerk manages authentication, organization membership, invitations, and user roles. PostgreSQL stores district data, including students, imports, support plans, specialist assignments, and audit events.
+
+Every `/api/v1` request verifies that the authenticated user's active Clerk organization matches the district being accessed. District coordinators can manage district-wide records, while specialists only have access to their assigned schools.
+
+## CSV Imports
+
+District staff upload student rosters as CSV files.
+
+The import pipeline validates every row and uses partial acceptance. Valid students are imported, while invalid rows are returned with specific error details.
+
+Student records, row errors, and the final import status are written in a single transaction. Uploading the same file more than once for the same district reuses the existing import job instead of creating duplicate students.
+
+## AI Assistant
+
+The assistant helps district staff understand why records failed during an import.
+
+It does not receive student names, raw CSV data, or support-plan content. Instead, it accesses aggregate import counts and error categories through a district-scoped Mastra tool.
+
+The model can only select from predefined guidance codes. Application code generates the final counts, statuses, error categories, and guidance text.
+
+If the model fails, times out, or skips the required tool call, the API returns a deterministic summary instead.
+
+## Authorization
+
+DistrictAssist supports three access levels:
+
+| Role | Access |
+| --- | --- |
+| `org:admin` | Import and edit students, manage support plans, and assign specialists |
+| `org:member` | Access students and support plans for assigned schools |
+| Platform administrator | Provision and manage districts across the platform |
+
+Changing a district ID in the URL does not grant access to another district's records.
+
+## API Resources
+
+| Resource | Supported operations |
+| --- | --- |
+| Districts | Create, read, and update districts |
+| Students | Create, list, filter, read, and update students |
+| Imports | Upload CSV files and inspect import results |
+| Support plans | Create, list, and update student support plans |
+| Assistant | Explain import results using aggregate data |
+
+Successful responses use the following format:
+
+```json
+{
+  "data": {}
+}
 ```
 
-## Run locally
+Errors include a stable error code, a safe message, and a request ID for debugging.
 
-You need Node 24, npm, Docker, and a Clerk application with Organizations enabled.
+## Running Locally
+
+### Requirements
+
+- Node.js 24
+- npm
+- Docker
+- A Clerk application with Organizations enabled
+
+### Start the API
 
 ```bash
 cp .env.example .env
@@ -37,17 +104,14 @@ npm run migrate:mastra
 npm run dev
 ```
 
-Set `CLERK_SECRET_KEY` and `OPENAI_API_KEY` in `.env`, and never commit the populated file.
+Set the following values in `.env`:
 
-In Clerk, enable Organizations and require organization membership. Create a Clerk Organization before creating its DistrictAssist workspace.
+```env
+CLERK_SECRET_KEY=
+OPENAI_API_KEY=
+```
 
-`GET /health` checks that the API is running. `GET /ready` verifies PostgreSQL connectivity. These endpoints remain public for health checks, while every `/api/v1` route requires Clerk authentication.
-
-## Run the web client
-
-The React operations console is located in `web/`.
-
-Because it runs in the browser, it only uses public environment variables and authenticates API requests with the user's current Clerk session token.
+### Start the Web Client
 
 ```bash
 cp web/.env.example web/.env
@@ -55,102 +119,50 @@ npm install --prefix web
 npm run dev --prefix web
 ```
 
-Set `VITE_CLERK_PUBLISHABLE_KEY` and `VITE_API_BASE_URL` in `web/.env`. Start the API separately with `npm run dev`.
+Set the following values in `web/.env`:
 
-The active Clerk organization is resolved through `GET /api/v1/districts/current`. If no workspace exists yet, an `org:admin` can create one directly from the web client.
-
-Never expose `CLERK_SECRET_KEY`, `DATABASE_URL`, or `OPENAI_API_KEY` through `VITE_` environment variables.
-
-## District provisioning
-
-1. Create or select the district's Organization in Clerk.
-2. Assign the district coordinator the `org:admin` role.
-3. Sign in to the web client and create the district workspace.
-4. Invite additional staff through Clerk and assign `org:admin` or `org:member`.
-
-When creating a district, the API reads the active Clerk organization from the authenticated session instead of trusting a client-provided organization ID. Platform administrators can still specify a `clerkOrganizationId` during managed provisioning.
-
-For districts created before Clerk integration, a platform administrator can bind an existing district with:
-
-```
-PUT /api/v1/districts/:districtId/clerk-organization
+```env
+VITE_CLERK_PUBLISHABLE_KEY=
+VITE_API_BASE_URL=
 ```
 
-This endpoint is intended only for migration and is not available to district staff.
+The API and web client run as separate applications. The web client authenticates API requests using the user's current Clerk session token.
 
-District coordinators assign specialists to schools through:
+## Platform Administration
 
-```
-PUT /api/v1/districts/:districtId/specialists/:clerkUserId/schools
-```
-
-The API enforces these assignments when serving student records and support plans.
-
-## Import and assistant behavior
-
-CSV imports use partial acceptance: valid students are imported while invalid rows are reported back to the user.
-
-Student records, row-level errors, and the final import status are committed in a single transaction. Uploading the same file again for the same district reuses the existing import instead of creating duplicates.
-
-The assistant receives only aggregate import statistics and error categories through a district-scoped Mastra tool.
-
-When `OPENAI_API_KEY` is configured, the model is required to call this tool and may only select from a predefined set of guidance codes. All counts, statuses, error categories, and guidance text are generated by the application, not the model. If the model fails, times out, or skips the required tool call, the API falls back to a deterministic summary.
-
-Import-error explanations run as a registered Mastra workflow with typed processing steps. Workflow state is stored in PostgreSQL outside of tests. Traces capture workflow versions, timing, tool calls, status, and token usage without storing prompts or student data.
-
-District provisioning, tenant rebinding, specialist assignment changes, and support-plan updates create append-only audit events. Logs include identifiers and status metadata but never student names or support-plan content.
-
-## API
-
-| Resource | Operations |
-|----------|------------|
-| Districts | Provision, read, and update districts |
-| Students | Create, list, filter, read, and update district-scoped students |
-| Imports | Upload CSVs and inspect import status and row errors |
-| Support plans | Create, list, and update plans with guarded transitions |
-| Assistant | Explain authorized imports using aggregate district data |
-
-Successful responses use:
-
-```json
-{
-  "data": ...
-}
-```
-
-Errors return a stable error code, a safe message, and a request ID for support and log correlation.
-
-## Deployment
-
-Use a managed PostgreSQL service with TLS and backups. Set `DATABASE_SSL=true` if required by your provider.
-
-Run migrations before deploying application instances:
+Grant platform administrator access after running migrations:
 
 ```bash
-npm run migrate:prod
-npm run migrate:mastra:prod
+npm run grant:platform-admin -- user_...
 ```
 
-The application does not perform schema migrations at startup.
+Platform administrators can provision districts and bind older district records to Clerk Organizations.
 
-Store `DATABASE_URL`, `CLERK_SECRET_KEY`, `OPENAI_API_KEY`, and allowed `CORS_ORIGIN` values in your platform's secret manager. Deploy behind TLS. The Docker Compose database is intended for local development only.
+## Health Checks
 
-## Data handling
+```text
+GET /health
+GET /ready
+```
 
-This repository must not contain real student records, exports, credentials, or screenshots with identifying information.
+`/health` checks that the API process is running.
 
-Before deploying to a district, complete your organization's privacy, security, retention, access-review, incident-response, and vendor-management requirements. The code provides technical controls but is not a FERPA or security compliance certification.
+`/ready` checks the PostgreSQL connection.
 
-## Checks
+Both endpoints are public. All `/api/v1` routes require authentication.
+
+## Testing
+
+Run the standard checks:
 
 ```bash
 npm run check
 npm run build
 ```
 
-The default test suite is deterministic and does not make paid model calls.
+The normal test suite is deterministic and does not make paid model calls.
 
-Run the optional live model evaluation separately when `OPENAI_API_KEY` is configured:
+Run the optional live AI evaluation with:
 
 ```bash
 npm run test:ai:live
